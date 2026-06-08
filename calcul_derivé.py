@@ -1,4 +1,4 @@
-import numpy
+import numpy  as np
 
 def square(x): #swuare function
     return x*x
@@ -19,7 +19,7 @@ def absolute(x):
 #calculer la dérivée de x²
 
 size=100   #quantité de valeurs utilisées: + haut, + précis
-tab_x = numpy.linspace(0,10,size)  #initialiser 100 valeurs de x, entre 0 et 10
+tab_x = np.linspace(0,10,size)  #initialiser 100 valeurs de x, entre 0 et 10
 tab_f = square(tab_x)   #possible en num.py
 
 #print(tab_f)

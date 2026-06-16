@@ -5,13 +5,15 @@ from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 
 #        QUESTION 2     
-nx = 200                # Réduit
-nt = 1500                # Augmenté mais pas trop
-t_max = 0.3             # Temps plus court
+
+# Initialisations des parametres
+nx = 200                
+nt = 1500                
+t_max = 0.3             
 
 
-k0  = 1.0               # Réduit (paquet moins énergétique)
-a = 1.0             # Plus large
+k0  = 1.0               
+a = 1.0                 
 m = 1.0
 
 print(f"Paramètres du paquet d'ondes :")
@@ -29,7 +31,7 @@ print(f"\nEspace : Δx = {dx:.6f}")
 print(f"Temps : Δt = {dt:.6f}")
 
 # Paquet d'onde gaussien
-prefactor = (1 / (8 * np.pi))**(3/4) * np.sqrt(4 * np.pi * m * a / (m * a**2)) #Préfaceur
+prefactor = (1 / (8 * np.pi**3))**(1/4) * np.sqrt(4 * np.pi * m * a / (m * a**2)) #Préfaceur
 # Equation divisé en deux sinon ceci aurait été trop long a écrire
 psi_0 = prefactor * np.exp(1j * k0 * x - x**2 / a**2)
 
@@ -40,7 +42,7 @@ psi[:, 0] = psi_0
     ##  QUESTION 4 
 hbar = 1.0
 
-V0 = 0.0
+V0 = 5.0
 
 # Vérifier stabilité
 stability = hbar * dt / (dx**2)
@@ -81,15 +83,28 @@ print("✓ Intégration terminée\n")
 
 # VÉRIFICATIONS 
 
+## Verification Energetique
+energy = np.zeros(nt)
+for n in range(nt):
+    # Dérivée spatiale via gradient numérique
+    dpsi_dx = np.gradient(psi[:, n], dx)
+    # Intégrale de l'énergie cinétique moyenne : ∫ (hbar² / 2m) * |dΨ/dx|² dx
+    energy[n] = np.sum((hbar**2 / (2 * m)) * np.abs(dpsi_dx)**2) * dx
 
+print("Conservation de l'énergie :")
+print(f"  E(t=0) = {energy[0]:.6f}")
+print(f"  E(t=T) = {energy[-1]:.6f}")
+print(f"  Erreur d'énergie = {abs(energy[-1] - energy[0])/energy[0]*100:.4f}%")
+
+## Vérification de la Norme 
 norm = np.array([np.sum(np.abs(psi[:, n])**2) * dx for n in range(nt)])
-
 print("Conservation de la norme :")
 print(f"  ||Ψ(t=0)||² = {norm[0]:.6f}")
 print(f"  ||Ψ(t=T)||² = {norm[-1]:.6f}")
 print(f"  Erreur = {abs(norm[-1] - norm[0])/norm[0]*100:.4f}%")
 
-# ⚠️ Vérifier si la simulation a divergé
+
+#  Vérifier si la simulation a divergé
 if np.any(np.isnan(psi)) or np.any(np.isinf(psi)):
     print("\n❌ ERREUR : La simulation a divergé (NaN ou Inf détectés)")
     print("   Réduisez nt ou augmentez nx")
@@ -122,16 +137,17 @@ axes[0, 1].set_xlabel("Position x")
 axes[0, 1].set_ylabel("|Ψ|")
 axes[0, 1].grid(alpha=0.3)
 
-# Plot 3
-axes[1, 0].plot(t, norm, 'g-', linewidth=2)
-axes[1, 0].set_title("Conservation de la norme ||Ψ||²")
+# Plot 3 - MODIFIÉ POUR L'ÉNERGIE
+axes[1, 0].plot(t, energy, 'g-', linewidth=2)
+axes[1, 0].set_title("Énergie totale moyenne <E>")
 axes[1, 0].set_xlabel("Temps t")
-axes[1, 0].set_ylabel("∫|Ψ|² dx")
+axes[1, 0].set_ylabel("Énergie (U.R.)")
+# Ajustement de l'axe Y pour bien voir que l'énergie est constante (évite une échelle trop aplatie)
+axes[1, 0].set_ylim(energy[0] * 0.9, energy[0] * 1.1)
 axes[1, 0].grid(alpha=0.3)
 
 # Plot 4 - Heatmap (CORRIGÉE)
 density = np.abs(psi)**2
-# ⚠️ IMPORTANT : Utiliser vmin et vmax pour éviter les problèmes de normalisation
 vmax = np.max(density)
 im = axes[1, 1].imshow(density, aspect='auto', origin='lower',
                        extent=[0, t_max, x_min, x_max], cmap='hot',
@@ -142,7 +158,6 @@ axes[1, 1].set_ylabel("Position x")
 cbar = plt.colorbar(im, ax=axes[1, 1])
 cbar.set_label("|Ψ|²")
 
-# ⚠️ Utiliser subplots_adjust() au lieu de tight_layout()
 plt.subplots_adjust(left=0.08, right=0.96, top=0.93, bottom=0.08, hspace=0.3, wspace=0.3)
 
 plt.savefig("onde_gaussienne.png", dpi=150, bbox_inches='tight')

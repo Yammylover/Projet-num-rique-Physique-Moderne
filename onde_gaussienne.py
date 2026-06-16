@@ -1,17 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.sparse import diags
+from scipy.sparse.linalg import spsolve
+
 #        QUESTION 2     
 nx = 200                # Réduit
 nt = 1500                # Augmenté mais pas trop
 t_max = 0.3             # Temps plus court
 
-x0  = 0.0
+
 k0  = 1.0               # Réduit (paquet moins énergétique)
-sigma = 1.0             # Plus large
+a = 1.0             # Plus large
+m = 1.0
 
 print(f"Paramètres du paquet d'ondes :")
-print(f"x0 = {x0}, k0 = {k0}, σ = {sigma}")
+print(f" k0 = {k0}, a = {a}")
 
 ##       QUESTION 3 
 x_min, x_max = -10.0, 10.0
@@ -24,8 +28,10 @@ dt = t[1] - t[0]
 print(f"\nEspace : Δx = {dx:.6f}")
 print(f"Temps : Δt = {dt:.6f}")
 
-# Paquet gaussien
-psi_0 = np.exp(-((x - x0)**2) / (2 * sigma**2)) * np.exp(1j * k0 * x)
+# Paquet d'onde gaussien
+prefactor = (1 / (8 * np.pi))**(3/4) * np.sqrt(4 * np.pi * m * a / (m * a**2)) #Préfaceur
+# Equation divisé en deux sinon ceci aurait été trop long a écrire
+psi_0 = prefactor * np.exp(1j * k0 * x - x**2 / a**2)
 
 # Tableau 2D
 psi = np.zeros((nx, nt), dtype=complex)
@@ -33,7 +39,7 @@ psi[:, 0] = psi_0
 
     ##  QUESTION 4 
 hbar = 1.0
-m = 1.0
+
 V0 = 0.0
 
 # Vérifier stabilité
@@ -44,52 +50,34 @@ if stability < 1:
 else:
     print(" ✗ INSTABLE - réduire Δt !")
 
-alpha = -1j * hbar * dt / (2 * m * dx**2)
-beta = -1j * V0 * dt / hbar
+# Méthode de Crank-Nicolson
 
-print(f"α = {alpha}")
-print(f" |alpha| = {np.abs(alpha):.6f}")
-print(f"β = {beta}")
-if np.abs(alpha) > 0.1:
-    print("❌ |alpha| trop grand → réduire dt ou augmenter m")
+r = 1j * hbar * dt / (4 * m * dx**2)
 
-# BOUCLE PRINCIPALE
+##  CREATION DE 2 MATRICES AFIN DE CALCULE LES VALEURS N-1 N ET N+1
+# Calcul de N+1 avec A+
+A = diags([-r, 1.0 + 2*r, -r], [-1, 0, 1], shape=(nx, nx), format='csr') 
+#Caclul de N et N-1 avec B 
+B = diags([r, 1.0 - 2*r, r], [-1, 0, 1], shape=(nx, nx), format='csr')
 
-
-print(f"\nIntégration...")
-
-absorb_width = 20
-absorb = np.ones(nx)
-for i in range(absorb_width):
-## Eviter que la fonction explose et crée une erreur
-    absorb[i] *= (1 - np.cos(np.pi * i / absorb_width)) / 2
-    absorb[-(i+1)] *= (1 - np.cos(np.pi * i / absorb_width)) / 2
-
+print(f"\nIntégration (Crank-Nicolson)...")
 
 for n in range(nt - 1):
-    for i in range(1, nx - 1):
-        laplacian = (psi[i+1, n] - 2*psi[i, n] + psi[i-1, n]) / (dx**2)
-        psi[i, n+1] = (psi[i, n] + alpha * laplacian 
-                       + 1j * beta * psi[i, n])
-    
-    psi[:, n+1] *= absorb
-    max_val = np.max(np.abs(psi[:, n+1]))
+    # Calcul de 2 matrices avec l'opérateur @
+    psi[:, n+1] = spsolve(A, B @ psi[:, n]) # Fonction qui résout un systeme linéaire afin de trouvé n+1
 
-    if max_val > 1e10:
-        print(f"⚠️  DIVERGENCE à n={n}, max|Ψ| = {max_val:.2e}")
-        print(f"    Réduisez dt ou augmentez nx")
-        break
-    
+    #  Limites aux bords
+    psi[0, n+1] = 0.0
+    psi[-1, n+1] = 0.0
+
     if n % 100 == 0:
         norm_current = np.sum(np.abs(psi[:, n+1])**2) * dx
         print(f"n={n}: ||Ψ||² = {norm_current:.6f}")
 
     if (n + 1) % (nt // 5) == 0:
-        progression = (n + 1) / nt * 100
-        print(f"  {progression:.0f}% → t = {t[n+1]:.4f}")
+        print(f"  {(n+1)/nt*100:.0f}% → t = {t[n+1]:.4f}")
 
 print("✓ Intégration terminée\n")
-
 
 # VÉRIFICATIONS 
 
@@ -157,4 +145,5 @@ cbar.set_label("|Ψ|²")
 # ⚠️ Utiliser subplots_adjust() au lieu de tight_layout()
 plt.subplots_adjust(left=0.08, right=0.96, top=0.93, bottom=0.08, hspace=0.3, wspace=0.3)
 
-plt.show()
+plt.savefig("onde_gaussienne.png", dpi=150, bbox_inches='tight')
+print("✓ Figure sauvegardée : onde_gaussienne.png")

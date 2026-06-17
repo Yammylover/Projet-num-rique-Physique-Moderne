@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 
-#        QUESTION 2     
-
+# ════════════════════════════════════════════════════════════════
+#                   QUESTION 2     
+# ════════════════════════════════════════════════════════════════
 # Initialisations des parametres
 nx = 200                
 nt = 1500                
@@ -19,7 +20,11 @@ m = 1.0
 print(f"Paramètres du paquet d'ondes :")
 print(f" k0 = {k0}, a = {a}")
 
-##       QUESTION 3 
+
+# ════════════════════════════════════════════════════════════════
+##                      QUESTION 3 
+# ════════════════════════════════════════════════════════════════
+
 x_min, x_max = -10.0, 10.0
 x = np.linspace(x_min, x_max, nx)
 t = np.linspace(0, t_max, nt)
@@ -39,9 +44,12 @@ psi_0 = prefactor * np.exp(1j * k0 * x - x**2 / a**2)
 psi = np.zeros((nx, nt), dtype=complex)
 psi[:, 0] = psi_0
 
-    ##  QUESTION 4 
-hbar = 1.0
 
+# ════════════════════════════════════════════════════════════════
+##                      QUESTION 4 
+# ════════════════════════════════════════════════════════════════
+
+hbar = 1.0
 V0 = 5.0
 
 # Vérifier stabilité
@@ -56,8 +64,8 @@ else:
 
 r = 1j * hbar * dt / (4 * m * dx**2)
 
-##  CREATION DE 2 MATRICES AFIN DE CALCULE LES VALEURS N-1 N ET N+1
-# Calcul de N+1 avec A+
+##  CREATION DE 2 MATRICES AFIN DE CALCULé LES VALEURS N-1 N ET N+1
+# Calcul de N+1 avec A
 A = diags([-r, 1.0 + 2*r, -r], [-1, 0, 1], shape=(nx, nx), format='csr') 
 #Caclul de N et N-1 avec B 
 B = diags([r, 1.0 - 2*r, r], [-1, 0, 1], shape=(nx, nx), format='csr')
@@ -80,6 +88,10 @@ for n in range(nt - 1):
         print(f"  {(n+1)/nt*100:.0f}% → t = {t[n+1]:.4f}")
 
 print("✓ Intégration terminée\n")
+
+
+
+
 
 # VÉRIFICATIONS 
 
@@ -113,6 +125,12 @@ if np.any(np.isnan(psi)) or np.any(np.isinf(psi)):
 if norm[-1] > norm[0] * 10:
     print("\n⚠️  ATTENTION : La norme a explosé (×10)")
     print("   La simulation est peut-être instable")
+
+
+
+
+
+
 
 # ════════════════════════════════════════════════════════════════
 # VISUALISATION

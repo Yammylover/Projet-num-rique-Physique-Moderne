@@ -4,14 +4,18 @@ import matplotlib.pyplot as plt
 from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 
+
 # ════════════════════════════════════════════════════════════════
 #                   QUESTION 2     
 # ════════════════════════════════════════════════════════════════
-# Initialisations des parametres
+# Paramètres du paquet d'ondes gaussien initial.
+# Remarque : a contrôle la largeur spatiale du paquet.
+# Plus a est grand, plus le paquet est étalé en espace
+# et localisé en vecteur d'onde (relation d'incertitude).
 nx = 200                
 nt = 1500                
 t_max = 0.3             
-
+hbar = 1.0
 
 k0  = 1.0               
 a = 1.0                 
@@ -24,6 +28,10 @@ print(f" k0 = {k0}, a = {a}")
 # ════════════════════════════════════════════════════════════════
 ##                      QUESTION 3 
 # ════════════════════════════════════════════════════════════════
+# Paramètres du paquet d'ondes gaussien initial.
+# Remarque : a contrôle la largeur spatiale du paquet.
+# Plus a est grand, plus le paquet est étalé en espace
+# et localisé en vecteur d'onde (relation d'incertitude).
 
 x_min, x_max = -10.0, 10.0
 x = np.linspace(x_min, x_max, nx)
@@ -35,10 +43,14 @@ dt = t[1] - t[0]
 print(f"\nEspace : Δx = {dx:.6f}")
 print(f"Temps : Δt = {dt:.6f}")
 
-# Paquet d'onde gaussien
-prefactor = (1 / (8 * np.pi**3))**(1/4) * np.sqrt(4 * np.pi * m * a / (m * a**2)) #Préfaceur
-# Equation divisé en deux sinon ceci aurait été trop long a écrire
-psi_0 = prefactor * np.exp(1j * k0 * x - x**2 / a**2)
+def GaussWP(k0, a, x, t):
+    terme = m * a**2 + 2j * hbar * t
+    inv_terme = 1 / terme
+    amplitude = np.sqrt(2 * m * a * inv_terme / np.sqrt(2 * np.pi))
+    return amplitude * np.exp(inv_terme * m * (a**2 * k0 + 2j * x)**2 / 4) \
+                     * np.exp(-a**2 * k0**2 / 4)
+
+psi_0 = GaussWP(k0, a, x, t=0)
 
 # Tableau 2D
 psi = np.zeros((nx, nt), dtype=complex)
@@ -49,7 +61,7 @@ psi[:, 0] = psi_0
 ##                      QUESTION 4 
 # ════════════════════════════════════════════════════════════════
 
-hbar = 1.0
+
 V0 = 5.0
 
 # Vérifier stabilité
@@ -128,8 +140,24 @@ if norm[-1] > norm[0] * 10:
 
 
 
+# ════════════════════════════════════════════════════════════════
+##                      QUESTION 5 
+# ════════════════════════════════════════════════════════════════
 
+fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+instants = [0, nt//4, nt//2]
 
+for idx, n in enumerate(instants):
+    psi_ana = GaussWP(k0, a, x, t[n])
+    axes[idx].plot(x, np.abs(psi[:, n])**2,label="Numérique")
+    axes[idx].plot(x, np.abs(psi_ana)**2, '--',label="Analytique")
+    axes[idx].set_title(f"t = {t[n]:.3f}")
+    axes[idx].legend()
+    axes[idx].grid(alpha=0.3)
+
+plt.suptitle("Question 5 — Numérique vs Analytique")
+plt.tight_layout()
+plt.savefig("comparaison_q5.png")
 
 
 # ════════════════════════════════════════════════════════════════

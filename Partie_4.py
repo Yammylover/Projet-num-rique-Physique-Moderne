@@ -12,9 +12,9 @@ from scipy.sparse.linalg import spsolve
 # Remarque : a contrôle la largeur spatiale du paquet.
 # Plus a est grand, plus le paquet est étalé en espace
 # et localisé en vecteur d'onde (relation d'incertitude).
-nx = 200                
-nt = 1500                
-t_max = 0.3             
+nx = 1000                
+nt = 50000                
+t_max = 12.0             
 hbar = 1.0
 
 k0  = 1.0               
@@ -34,7 +34,7 @@ print(f" k0 = {k0}, a = {a}")
 # Plus a est grand, plus le paquet est étalé en espace
 # et localisé en vecteur d'onde (relation d'incertitude).
 
-x_min, x_max = -10.0, 10.0
+x_min, x_max = -60.0, 60.0
 x = np.linspace(x_min, x_max, nx)
 t = np.linspace(0, t_max, nt)
 
@@ -44,14 +44,15 @@ dt = t[1] - t[0]
 print(f"\nEspace : Δx = {dx:.6f}")
 print(f"Temps : Δt = {dt:.6f}")
 
-def GaussWP(k0, a, x, t):
+def GaussWP(k0, a, x, t, x0=0.0):
     terme = m * a**2 + 2j * hbar * t
     inv_terme = 1 / terme
     amplitude = np.sqrt(2 * m * a * inv_terme / np.sqrt(2 * np.pi))
-    return amplitude * np.exp(inv_terme * m * (a**2 * k0 + 2j * x)**2 / 4) \
-                     * np.exp(-a**2 * k0**2 / 4)
-
-psi_0 = GaussWP(k0, a, x, t=0)
+    return amplitude \
+        * np.exp(inv_terme * m * (a**2 * k0 + 2j * (x - x0))**2 / 4) \
+        * np.exp(-a**2 * k0**2 / 4) \
+        * np.exp(1j * k0 * x0) 
+psi_0 = GaussWP(k0, a, x, t=0,x0=-10.0)
 
 # Tableau 2D
 psi = np.zeros((nx, nt), dtype=complex)
@@ -63,7 +64,11 @@ psi[:, 0] = psi_0
 # ════════════════════════════════════════════════════════════════
 
 
-V0 = 5.0
+V0 = 1.5
+largeur_barriere = a
+V = np.zeros(nx)
+V[(x >= -largeur_barriere/2) & (x <= largeur_barriere/2)] = V0  # barrière en x=0
+
 
 # Vérifier stabilité
 stability = hbar * dt / (dx**2)
@@ -78,10 +83,13 @@ else:
 r = 1j * hbar * dt / (4 * m * dx**2)
 
 ##  CREATION DE 2 MATRICES AFIN DE CALCULé LES VALEURS N-1 N ET N+1
+
+# Contribution du potentiel sur la diagonale
+s = 1j * dt * V / (2 * hbar) 
 # Calcul de N+1 avec A
-A = diags([-r, 1.0 + 2*r, -r], [-1, 0, 1], shape=(nx, nx), format='csr') 
+A = diags([-r, 1.0 + 2*r + s, -r], [-1, 0, 1], shape=(nx, nx), format='csr') 
 #Caclul de N et N-1 avec B 
-B = diags([r, 1.0 - 2*r, r], [-1, 0, 1], shape=(nx, nx), format='csr')
+B = diags([r, 1.0 - 2*r - s, r], [-1, 0, 1], shape=(nx, nx), format='csr')
 
 print(f"\nIntégration (Crank-Nicolson)...")
 
@@ -95,7 +103,7 @@ for n in range(nt - 1):
 
     if n % 100 == 0:
         norm_current = np.sum(np.abs(psi[:, n+1])**2) * dx
-        print(f"n={n}: ||Ψ||² = {norm_current:.6f}")
+        #print(f"n={n}: ||Ψ||² = {norm_current:.6f}")
 
     if (n + 1) % (nt // 5) == 0:
         print(f"  {(n+1)/nt*100:.0f}% → t = {t[n+1]:.4f}")
@@ -207,5 +215,5 @@ cbar.set_label("|Ψ|²")
 
 plt.subplots_adjust(left=0.08, right=0.96, top=0.93, bottom=0.08, hspace=0.3, wspace=0.3)
 
-plt.savefig("onde_gaussienne.png", dpi=150, bbox_inches='tight')
-print("✓ Figure sauvegardée : onde_gaussienne.png")
+plt.savefig("Puit_Potentiel.png", dpi=150, bbox_inches='tight')
+print("✓ Figure sauvegardée : Puit_Potentiel.png")

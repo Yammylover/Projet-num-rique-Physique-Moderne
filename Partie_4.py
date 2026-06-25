@@ -125,7 +125,7 @@ def mesurer_tau0(x, t, psi, a):
     nt = len(t)
     position_max = np.zeros(nt)
     for n in range(nt):
-        idx = np.argmax(np.abs(psi[:, n])**2)
+        idx = np.argmax(np.abs(psi[:, n])**2) # Je cherche le max 
         position_max[n] = x[idx]
 
     x_depart = position_max[0]
@@ -153,7 +153,7 @@ def mesurer_tau_t(x, t, psi, largeur_barriere):
     for n in range(nt):
         densite_transmise = np.abs(psi[zone_transmise, n])**2
         if np.max(densite_transmise) > max_densite_transmise_globale:
-            max_densite_transmise_globale = np.max(densite_transmise)
+            max_densite_transmise_globale = np.max(densite_transmise) # Recherché le Max dans la zone transmise
 
     seuil = 0.5 * max_densite_transmise_globale
 
@@ -161,7 +161,7 @@ def mesurer_tau_t(x, t, psi, largeur_barriere):
     for n in range(nt):
         densite_transmise = np.abs(psi[zone_transmise, n])**2
         if np.max(densite_transmise) > seuil:
-            tau_t_num = t[n]
+            tau_t_num = t[n] # On cherche le premier instant de la zone transmise
             break
 
     return tau_t_num, max_densite_transmise_globale
